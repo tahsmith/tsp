@@ -1,32 +1,47 @@
+import io
 import os
 import re
-import io
 
+import hypothesis.strategies as st
 import pytest
 from hypothesis import (
     given,
     assume
 )
 
-import hypothesis.strategies as st
-
 from tsp import (
     re_format,
     file_or_open,
-    absent_if_none
+    absent_if_none,
+    pack_args,
+    call_packed
 )
 
 
 def st_any():
     x = st.deferred(
+        lambda: st_hashable()
+                | st.lists(x)
+                | st.dictionaries(st_hashable(), x)
+                | st.sets(st_hashable())
+    )
+    return x
+
+
+def st_hashable():
+    x = st.deferred(
         lambda: st.text()
                 | st.binary()
                 | st.integers()
-                | st.floats()
-                | st.lists(x)
-                | st.dictionaries(st.text(), x)
-                | st.sets(st.text())
+                | st.floats(allow_nan=False)
+                | st.decimals(allow_nan=False)
+                | st.fractions()
+                | st.datetimes()
+                | st.tuples(x)
+                | st.frozensets(x)
+
     )
+
     return x
 
 
@@ -119,3 +134,24 @@ def test_file_or_open_file_absent(s, text, mode, tmpdir):
     if mode and 'w' in mode:
         with open(path, 'r' + ('b' if binary else '')) as f:
             assert text == f.read()
+
+
+@given(args=st.tuples(st_any()), kwargs=st.dictionaries(st.text(), st_any()))
+def test_pack_args(args, kwargs):
+    packed = pack_args(*args, **kwargs)
+    assert packed['args'] == args
+    assert packed['kwargs'] == kwargs
+
+
+@given(args=st.tuples(st_any()), kwargs=st.dictionaries(st.text(), st_any()))
+def test_call_packed(args, kwargs):
+    call_count = 0
+
+    def f(*actual_args, **actual_kwargs):
+        nonlocal call_count
+        call_count += 1
+        assert actual_args == args
+        assert actual_kwargs == kwargs
+
+    call_packed(f, args, kwargs)
+    assert call_count == 1

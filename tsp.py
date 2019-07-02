@@ -81,8 +81,41 @@ class ReturningGenerator:
         self.result = yield from self.gen
 
 
-def as_args(*args, **kwargs):
-    return args, kwargs
+def pack_args(*args, **kwargs):
+    """ Pack given arguments into `args` and `kwargs` objects.
+
+    Useful for packing up arguments to a function to call later with as a thread
+    or with multiprocessing.
+
+    :return: a dictionary of {'args': args, 'kwargs': kwargs}
+
+    Example:
+
+    >>> from threading import Thread
+    >>> def f(a, b): pass
+    >>> t = Thread(target=f, **pack_args(1, b=2))
+    >>> t.start()
+    >>> t.join()
+
+    """
+    return {'args': args, 'kwargs': kwargs}
+
+
+def call_packed(f, args=None, kwargs=None):
+    """ Call a function with packed args
+
+    Counterpart to `pack_args`
+
+    >>> def f(a, b): print(f'{a}, {b}')
+    >>> call_packed(f, **pack_args(1, b=2))
+    1, 2
+
+    """
+    if args is None:
+        args = ()
+    if kwargs is None:
+        kwargs = {}
+    return f(*args, **kwargs)
 
 
 def absent_if_none(**kwargs):
