@@ -118,5 +118,40 @@ def call_packed(f, args=None, kwargs=None):
     return f(*args, **kwargs)
 
 
+def unpack_into(f):
+    def g(args):
+        return call_packed(f, **args)
+
+    return g
+
+
 def absent_if_none(**kwargs):
     return {k: v for k, v in kwargs.items() if v is not None}
+
+
+def key_value_filter(v, f, k_iter):
+    for k in k_iter:
+        z = v(k)
+        if f(z):
+            yield z
+
+
+def nop(x):
+    return x
+
+
+def const(x):
+    def f(*_, **__):
+        return x
+
+    return f
+
+
+def chain(*fs):
+    def g(x):
+        for f in fs:
+            x = f(x)
+
+        return x
+
+    return g
