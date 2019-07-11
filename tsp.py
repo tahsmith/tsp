@@ -1,3 +1,5 @@
+import io
+
 import re
 import pickle
 import typing
@@ -40,7 +42,7 @@ def file_or_open(f: FileOrPath, mode: ty.AnyStr = None):
             kwargs['mode'] = mode
         f = open(f, **kwargs)
         close = True
-    elif isinstance(f, typing.IO):
+    elif isinstance(f, io.IOBase):
         close = False
     else:
         raise ValueError('f must be a string of a file like object. Got {type}'
@@ -155,3 +157,12 @@ def chain(*fs):
         return x
 
     return g
+
+
+def last(iterable):
+    empty = object()
+    x = empty
+    for x in iterable:
+        pass
+    if x is empty:
+        raise ValueError('iterable was empty, no last value.')
